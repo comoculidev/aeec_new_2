@@ -1,0 +1,106 @@
+# ═══════════════════════════════════════════════════════════════════
+# AEEC — aeec.az üçün Apache ayarları (v3.1)
+# Bu faylın işləməsi üçün serverdə sayt qovluğuna "AllowOverride All"
+# verilməli və rewrite, headers modulları aktiv olmalıdır (bax: OXU-MENI.txt).
+# ═══════════════════════════════════════════════════════════════════
+
+Options -Indexes -MultiViews
+DirectoryIndex index.html
+AddDefaultCharset UTF-8
+ServerSignature Off
+ErrorDocument 404 /404.html
+
+<IfModule mod_mime.c>
+  AddType image/webp .webp
+  AddType application/manifest+json .webmanifest
+  AddType image/svg+xml .svg
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  DirectorySlash Off
+
+  # 1) Vahid ünvan: http → https, www → www-siz (bir addımda)
+  RewriteCond %{HTTP_HOST} ^www\.aeec\.az$ [NC]
+  RewriteRule ^ https://aeec.az%{REQUEST_URI} [R=301,L]
+  RewriteCond %{HTTP_HOST} ^aeec\.az$ [NC]
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://aeec.az%{REQUEST_URI} [R=301,L]
+
+  # 2) /index.html → / (bütün qovluqlarda)
+  RewriteCond %{THE_REQUEST} \s/+((?:[^?\s]*/)?)index\.html[\s?] [NC]
+  RewriteRule ^ https://aeec.az/%1 [R=301,L,NE]
+
+  # 3) Köhnə .html ünvanları → yeni təmiz ünvanlar
+  RewriteRule ^haqqimizda\.html$ https://aeec.az/haqqimizda/ [R=301,L]
+  RewriteRule ^heller\.html$ https://aeec.az/heller/ [R=301,L]
+  RewriteRule ^layiheler\.html$ https://aeec.az/layiheler/ [R=301,L]
+  RewriteRule ^dayaniqliliq\.html$ https://aeec.az/dayaniqliliq/ [R=301,L]
+  RewriteRule ^academy\.html$ https://aeec.az/akademiya/ [R=301,L]
+  RewriteRule ^xeberler\.html$ https://aeec.az/xeberler/ [R=301,L]
+  RewriteRule ^elaqe\.html$ https://aeec.az/elaqe/ [R=301,L]
+  RewriteRule ^mexfilik\.html$ https://aeec.az/mexfilik/ [R=301,L]
+  RewriteRule ^en/haqqimizda\.html$ https://aeec.az/en/about/ [R=301,L]
+  RewriteRule ^en/heller\.html$ https://aeec.az/en/solutions/ [R=301,L]
+  RewriteRule ^en/layiheler\.html$ https://aeec.az/en/projects/ [R=301,L]
+  RewriteRule ^en/dayaniqliliq\.html$ https://aeec.az/en/sustainability/ [R=301,L]
+  RewriteRule ^en/academy\.html$ https://aeec.az/en/academy/ [R=301,L]
+  RewriteRule ^en/xeberler\.html$ https://aeec.az/en/news/ [R=301,L]
+  RewriteRule ^en/elaqe\.html$ https://aeec.az/en/contact/ [R=301,L]
+  RewriteRule ^en/mexfilik\.html$ https://aeec.az/en/privacy/ [R=301,L]
+  RewriteRule ^ru/haqqimizda\.html$ https://aeec.az/ru/about/ [R=301,L]
+  RewriteRule ^ru/heller\.html$ https://aeec.az/ru/solutions/ [R=301,L]
+  RewriteRule ^ru/layiheler\.html$ https://aeec.az/ru/projects/ [R=301,L]
+  RewriteRule ^ru/dayaniqliliq\.html$ https://aeec.az/ru/sustainability/ [R=301,L]
+  RewriteRule ^ru/academy\.html$ https://aeec.az/ru/academy/ [R=301,L]
+  RewriteRule ^ru/xeberler\.html$ https://aeec.az/ru/news/ [R=301,L]
+  RewriteRule ^ru/elaqe\.html$ https://aeec.az/ru/contact/ [R=301,L]
+  RewriteRule ^ru/mexfilik\.html$ https://aeec.az/ru/privacy/ [R=301,L]
+
+  # 4) 2026-cı ilin yenidən qurulmasından əvvəlki saytın ünvanları
+  RewriteRule ^homeMore\.html$ https://aeec.az/en/about/ [R=301,L,NC]
+  RewriteRule ^aboutMore\.html$ https://aeec.az/en/about/ [R=301,L,NC]
+  RewriteRule ^aService\.html$ https://aeec.az/en/solutions/ [R=301,L,NC]
+  RewriteRule ^bService\.html$ https://aeec.az/en/solutions/ [R=301,L,NC]
+  RewriteRule ^cService\.html$ https://aeec.az/en/solutions/ [R=301,L,NC]
+  RewriteRule ^dService\.html$ https://aeec.az/en/solutions/ [R=301,L,NC]
+
+  # 5) Sonda "/" olmayan qovluq ünvanı → "/" ilə (məs. /haqqimizda → /haqqimizda/)
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^(.+[^/])$ https://aeec.az/$1/ [R=301,L]
+</IfModule>
+
+# Gizli və xidməti fayllara giriş qadağandır (.well-known istisna)
+<IfModule mod_alias.c>
+  RedirectMatch 404 "/\.(?!well-known/)"
+</IfModule>
+<FilesMatch "\.(?:bak|conf|ini|log|sh|sql|md)$">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  Header always set Strict-Transport-Security "max-age=31536000"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src https://www.google.com; connect-src 'self' https://cloudflareinsights.com https://static.cloudflareinsights.com; form-action 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; upgrade-insecure-requests"
+  Header always unset X-Powered-By
+  Header unset ETag
+  # Keş: versiyalı CSS/JS — 1 il; şəkil və loqolar — 30 gün; HTML — hər dəfə yoxlanılır
+  <FilesMatch "\.(?:css|js)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "\.(?:webp|jpg|jpeg|png|svg|ico|webmanifest)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+  <FilesMatch "\.(?:html|xml|txt)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
+FileETag None
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml application/javascript text/javascript application/json application/xml image/svg+xml application/manifest+json
+</IfModule>
