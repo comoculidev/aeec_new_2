@@ -1,0 +1,132 @@
+AEEC — SAYT VƏ İDARƏETMƏ PANELİ · BİR LAYİHƏ
+Azərbaycan Enerji Encinirinq ənd Konsaltinq MMC · https://aeec.az/
+18.10.2026 · sayt v3.2, panel 1.2
+══════════════════════════════════════════════════════════════════════
+
+Bu qovluq bütöv bir layihədir: sayt da, idarəetmə paneli də, onların məlumatları da buradadır.
+Bir əmr, bir tətbiq, bir ünvan:
+
+    npm start
+      → http://localhost:8080/          sayt
+      → http://localhost:8080/admin/    idarəetmə paneli (giriş: /admin/login)
+      → http://localhost:8080/api/      API (saytın formaları və panel bunu istifadə edir)
+
+Başqa layihəyə, başqa qovluğa, başqa serverə və ya ayrıca proqrama ehtiyac yoxdur.
+Lazım olan yeganə şey: Node.js 22 (22.13 və ya daha yeni).
+
+
+QOVLUQ QURULUŞU
+───────────────
+  site/            sayt (HTML, şəkillər, üslub) — tətbiq onu özü verir
+  admin/           idarəetmə panelinin səhifələri
+  src/             tətbiqin kodu (API, giriş, xəbərlərin sayta yazılması və s.)
+  site-templates/  xəbər səhifələrinin şablonları (saytın dizaynında)
+  data/            İLK İŞƏ SALINMADA YARANIR: baza, yüklənən fayllar, ehtiyat nüsxələr
+  deploy/          canlı server üçün iki kiçik fayl (Apache, avtomatik işə düşmə)
+  test/            avtomatik yoxlamalar (npm test)
+  docs/            texniki sənəd və yoxlama hesabatı
+  server.js, package.json, .env.example
+
+
+1. KOMPÜTERDƏ İŞƏ SALMAQ
+════════════════════════
+1) Node.js 22-ni quraşdırın: https://nodejs.org (LTS, 22.x və ya daha yeni).
+2) Bu qovluğu açın və terminalda (Windows: qovluqda boş yerə Shift + sağ klik →
+   "Terminalda aç") yazın:
+       npm start
+3) Ekranda belə yazı görünəcək:
+       İlk Super Admin yaradıldı.
+       E-poçt: office@aeec.az
+       Müvəqqəti şifrə: Aeec-....
+   Bu şifrə həm də data/ilk-giris.txt faylındadır.
+4) Brauzerdə açın: http://localhost:8080 — sayt.
+   Panel: http://localhost:8080/admin → e-poçt və müvəqqəti şifrə → yeni şifrə təyin edin
+   (müvəqqəti şifrə faylı bundan sonra özü silinir).
+Dayandırmaq: terminalda Ctrl + C. Başqa port: PORT=3000 npm start (Windows:
+"set PORT=3000 && npm start").
+
+Bütün sazlamalar standartdır, .env faylı lazım deyil.
+
+
+2. SERVERƏ KÖÇÜRMƏK (bütöv qovluq)
+══════════════════════════════════
+Serverdə (Ubuntu) SSH ilə, əmrləri bir-bir icra edin.
+
+1-ci addım. Node.js 22:
+    curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+    sudo apt install -y nodejs
+    node -v                      ← v22.13 və ya daha böyük
+
+2-ci addım. Qovluğu yükləyin (WinSCP/FileZilla ilə ev qovluğunuza, adı "aeec"), sonra:
+    sudo mv ~/aeec /opt/aeec
+    sudo useradd --system --home /opt/aeec --shell /usr/sbin/nologin aeec
+    sudo mkdir -p /opt/aeec/data
+    sudo chown -R aeec:aeec /opt/aeec
+
+3-cü addım. Tənzimləmə faylı:
+    sudo -u aeec cp /opt/aeec/.env.example /opt/aeec/.env
+    sudo nano /opt/aeec/.env
+  BASE_URL=https://aeec.az və TRUST_PROXY=1 artıq yazılıb. SMTP_HOST, SMTP_USER, SMTP_PASS —
+  office@aeec.az poçt qutusunun SMTP məlumatları (bildiriş məktubları üçün; boş qalsa sorğular
+  yalnız paneldə görünür). Yadda saxla: Ctrl+O, Enter; çıx: Ctrl+X.
+    sudo chmod 600 /opt/aeec/.env
+
+4-cü addım. Avtomatik işə düşmə:
+    sudo cp /opt/aeec/deploy/aeec.service /etc/systemd/system/aeec.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now aeec
+    sudo journalctl -u aeec -n 30
+  Jurnalda müvəqqəti şifrə və "AEEC işə düşdü" görünür (şifrə həm də
+  /opt/aeec/data/ilk-giris.txt faylındadır: sudo cat /opt/aeec/data/ilk-giris.txt).
+
+5-ci addım («Apache» addımı). Domeni tətbiqə yönəldin. aeec.az-ın Apache faylını tapın:
+    grep -l "aeec.az" /etc/apache2/sites-enabled/*
+  Həmin faylda HƏR <VirtualHost ...> blokunun içinə, </VirtualHost> sətrindən əvvəl:
+    Include /opt/aeec/deploy/apache-aeec.conf
+  Sonra:
+    sudo a2enmod proxy proxy_http headers remoteip setenvif
+    sudo apache2ctl configtest     ← "Syntax OK"
+    sudo systemctl reload apache2
+  Artıq saytı da Apache yox, tətbiq verir; köhnə /var/www/html qovluğu istifadə olunmur
+  (silmək məcburi deyil — ehtiyat kimi qala bilər).
+
+6-cı addım. Cloudflare (dash.cloudflare.com → aeec.az):
+  - Speed → Optimization → "Rocket Loader" söndürülsün.
+  - Caching → Configuration → Purge Everything (bir dəfə).
+
+7-ci addım. Yoxlama:
+  - https://aeec.az → sayt; https://aeec.az/admin → giriş səhifəsi.
+  - Panelə girin, yeni şifrə təyin edin.
+  - Panel → Tənzimləmələr → Təhlükəsizlik: IP ünvanının yanında "Düzgün" yazmalıdır.
+  - Saytda Əlaqə formasını göndərin → Panel → Əlaqə sorğuları.
+  - Panel → Tənzimləmələr → E-poçt bildirişləri → "Sınaq məktubu göndər".
+
+
+3. SONRADAN YENİLƏMƏK
+═════════════════════
+Yeni versiyanın qovluğunu serverə yükləyin və köhnəsinin üzərinə yazın, AMMA iki şeyə
+toxunmayın: data/ qovluğu və .env faylı (bütün məlumatlar, şifrələr, sorğular orada).
+Sonra:  sudo chown -R aeec:aeec /opt/aeec && sudo systemctl restart aeec
+Paneldən yazılmış xəbər səhifələri işə düşəndə bazadan avtomatik yenidən yaradılır.
+
+Ehtiyat nüsxə: Panel → Tənzimləmələr → Ehtiyat nüsxə (və ya data/ qovluğunu kopyalayın).
+
+
+4. GÜNDƏLİK İSTİFADƏ
+════════════════════
+- Yeni xəbər: Panel → Xəbərlər → «Yeni xəbər» → mətn, şəkil, EN/RU tərcümə →
+  Status «Dərc olunub». Bir neçə saniyəyə saytda görünür (AZ, EN, RU). Tərcümə yazılmasa, o
+  dildə səhifə yaranmır.
+- Saytdakı 3 forma (ana səhifə, Əlaqə, Akademiya) → Panel → Layihə sorğuları / Əlaqə sorğuları.
+- Ziyarət statistikası → Panel → Analitika.
+- Layihələr, Həllər, Haqqımızda səhifələri hələ HTML fayllarıdır (site/ qovluğunda);
+  paneldəki Layihələr / Xidmətlər / Komanda / Şirkət bölmələri onlara avtomatik düşmür.
+
+
+PROBLEM OLARSA
+══════════════
+  "npm: command not found"     → Node.js quraşdırılmayıb (1-ci bölmə).
+  "EADDRINUSE"                  → 8080 portu məşğuldur: PORT=3000 npm start
+  Panelə giriş şifrəsini itirdim → npm run create-admin (serverdə: cd /opt/aeec && sudo -u aeec npm run create-admin)
+  Serverdə sayt açılmır (503)   → sudo systemctl status aeec ; sudo journalctl -u aeec -n 50
+  Hamı birdən "çox sayda cəhd"  → 5-ci addım tam icra olunmayıb (Təhlükəsizlik → IP "Problem")

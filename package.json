@@ -1,0 +1,16 @@
+{
+  "name": "aeec",
+  "version": "1.2.0",
+  "private": true,
+  "description": "AEEC: korporativ sayt (aeec.az) və idarəetmə paneli — bir layihə, bir server",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/markdown.test.js test/api.test.js test/site.test.js",
+    "create-admin": "node --disable-warning=ExperimentalWarning scripts/create-admin.js"
+  },
+  "dependencies": {}
+}

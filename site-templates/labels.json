@@ -1,0 +1,17 @@
+{
+  "az": {
+    "list": "/xeberler/",
+    "more_heading": "Digər xəbərlər",
+    "read_more": "Ətraflı"
+  },
+  "en": {
+    "list": "/en/news/",
+    "more_heading": "More news",
+    "read_more": "Read more"
+  },
+  "ru": {
+    "list": "/ru/news/",
+    "more_heading": "Другие новости",
+    "read_more": "Подробнее"
+  }
+}

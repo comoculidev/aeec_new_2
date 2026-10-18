@@ -1,0 +1,28 @@
+# ════════════════════════════════════════════════════════════════════════════
+#  AEEC — tətbiqi serverdə avtomatik işə salmaq (systemd)
+#  Yer: /etc/systemd/system/aeec.service
+#  Aktivləşdirmə:  sudo systemctl daemon-reload && sudo systemctl enable --now aeec
+#  Vəziyyət:       sudo systemctl status aeec      Jurnal: sudo journalctl -u aeec -n 100
+#  Bu, "npm start"-ın eynisidir: layihə qovluğunda server.js işə salınır.
+# ════════════════════════════════════════════════════════════════════════════
+[Unit]
+Description=AEEC sayt ve idareetme paneli
+After=network.target
+
+[Service]
+Type=simple
+User=aeec
+Group=aeec
+WorkingDirectory=/opt/aeec
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning server.js
+Restart=always
+RestartSec=3
+# Təhlükəsizlik: proqram yalnız data/ (baza, fayllar) və site/ (xəbər səhifələri) qovluqlarına yaza bilər.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/aeec/data /opt/aeec/site
+
+[Install]
+WantedBy=multi-user.target
